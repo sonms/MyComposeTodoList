@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">MyComposeTodoList</string>
+    <string name="text_calendar">캘린더</string>
+    <string name="text_home">홈</string>
+    <string name="text_statistics">통계</string>
+    <string name="text_setting">설정</string>
 </resources>

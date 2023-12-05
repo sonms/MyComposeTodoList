@@ -4,4 +4,6 @@
     <string name="text_home">홈</string>
     <string name="text_statistics">통계</string>
     <string name="text_setting">설정</string>
+    <string name="title_activity_edit_todo_list">EditTodoListActivity</string>
+    <string name="add_todo">Todo 추가</string>
 </resources>

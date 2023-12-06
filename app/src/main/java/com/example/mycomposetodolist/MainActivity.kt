@@ -1,9 +1,12 @@
 package com.example.mycomposetodolist
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -164,7 +167,7 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) {
             Text( //날짜
                 modifier = Modifier.fillMaxWidth(), //textalign을 적용하기 위해서는 크기의 설정이 필요
                 text = data.date.toString(),
-                fontFamily = FontFamily.Monospace,
+                fontFamily = FontFamily.Monospace, //fontfamily는 텍스트를 렌더링할 때 사용할 글꼴 모음(폰트종류)입니다, fontstyle = 이텔릭체, 등등fontStyle = FontStyle.Italic
                 style = MaterialTheme.typography.caption,
                 textAlign = TextAlign.End,
                 color = Color.Black,
@@ -183,16 +186,28 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) {
 
 
 
-//바텀 네비게이션
+//모든 뷰를 가진 최종 UI코드
 @Composable
 fun MainScreenView() { //바텀네이비게이션 바와 그 기능을 가진 최종 UI 코드
     val navController = rememberNavController()
     val context = LocalContext.current
-    fun moveEditTodoList() {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
+        when (activityResult.resultCode) {
+            Activity.RESULT_OK -> {
+                when(activityResult?.data?.getIntExtra("flag", -1)) {
+                    0 -> {
+
+                    }
+                }
+            }
+        }
+    }
+
+    val moveEditTodoList: () -> Unit = {
         val intent = Intent(context, EditTodoListActivity::class.java).apply {
             putExtra("type", "ADD")
         }
-        context.startActivity(intent)
+        launcher.launch(intent)
     }
 
     Scaffold( //material ui 기본 틀로 bottomBar, topbar, floatingbtn, drawer등을 포함하며 그려준다

@@ -2,6 +2,7 @@ package com.example.mycomposetodolist
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -50,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 
 
+lateinit var todoListAllData : ArrayList<TodoListData>
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,37 +81,10 @@ sealed class BottomNavItem(
 
 
 @Composable
-fun InitRecyclerViewUI() {
-    //기본적으로 Compose에서 어떠한 상태 값이 바뀌게 되면 재구성(Recomposition)이 일어나게 된다.
-    //여기서 재구성이란, 말 그대로 재 생성한다는 뜻이다.
-    //만약 재구성하게 되면 기본값이 a인 텍스트뷰가 버튼 클릭 시 b로 바뀔 때 재구성되는데 이때 b로바뀌는게 아니라 a를 그대로 가지고 있게됨 재구성되었으니까
-    // 재구성이 되었을 때도 값을 저장할 수 있도록 하기 위하여 Compose에서는 remember 키워드를 제공한다.
+fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
+    todoData : List<TodoListData>
+    ) {
 
-    //Compose에서 상태를 저장하고 상태가 변경 되었을 때 재구성하기 위해서는 관찰 가능한 객체를 사용해야 하는데
-    // MutableState클래스는 Compose에서 읽기와 쓰기를 관찰하기 위해 만들어진 클래스라고 생각하면 된다.
-    
-    //val favourites = remember { mutableStateListOf<Track>()}
-    //대신에
-    //
-    //var favourites: MutableList<Track> by mutableStateOf(mutableListOf())
-    //var favourites by mutableStateOf(listOf<FavoriteItem>())
-    //그런 다음 add/remove/update:-를 사용하여 목록을 작성하십시오.
-    //
-    //favourites = favourites + newList // add
-    //favourites = favourites.toMutableList().also { it.remove(item) } // remov
-    //var list: List<TodoListData> by rememberSaveable { mutableStateOf(listOf()) }
-
-    //remember가 리컴포지션(재구성) 과정 전체에서 상태를 유지하는 데 도움은 되지만
-    //
-    //구성 변경시에 유지가 되지 않습니다.
-    //
-    //( the state is not retained across configuration changes.)
-    //이 경우에는 rememberSaveable을 사용해야 합니다.
-    //
-    // rememberSaveable은 Bundle에 저장할 수 있는 모든 값을 자동으로 저장합니다.
-
-    var todoListData by rememberSaveable { mutableStateOf(listOf<TodoListData>()) }
-    todoListData = todoListData + listOf(TodoListData(0, "1", "1", "!", false))
     LazyColumn(
         contentPadding = PaddingValues(16.dp, 8.dp)
     ) {
@@ -117,9 +92,12 @@ fun InitRecyclerViewUI() {
             items = todoListData,
             itemContent = { RecyclerViewItemLayout(it) }
         )*/
-        itemsIndexed(items = todoListData) {
+        itemsIndexed(items = todoData) {
             index, item ->
-            RecyclerViewItemLayout(data = item, modifier = Modifier.fillMaxSize())
+            RecyclerViewItemLayout(
+                data = item,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
     
@@ -128,7 +106,7 @@ fun InitRecyclerViewUI() {
 
 
 @Composable
-fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) {
+fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) { //리사이클러뷰 아이템 그리는곳
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -145,7 +123,7 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) {
             Text( //제목
                 text = data.title.toString(),
                 fontFamily = FontFamily.Monospace,
-                style = MaterialTheme.typography.h1,
+                style = MaterialTheme.typography.h2,
                 textAlign = TextAlign.Center,
                 color = Color.Black,
                 fontSize = 12.sp,
@@ -156,10 +134,10 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) {
             Text( //내용
                 text = data.content.toString(),
                 fontFamily = FontFamily.Monospace,
-                style = MaterialTheme.typography.caption,
+                style = MaterialTheme.typography.body1,
                 textAlign = TextAlign.Center,
                 color = Color.Black,
-                fontSize = 8.sp,
+                fontSize = 18.sp,
                 overflow = TextOverflow.Ellipsis, //텍스트의 길이가 화면을 벗어날경우 처리설정, ellipsis는... / Visible 전부 표시, clip은 자르기 가로로잘림
                 maxLines = 1
             )
@@ -188,7 +166,48 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) {
 
 //모든 뷰를 가진 최종 UI코드
 @Composable
-fun MainScreenView() { //바텀네이비게이션 바와 그 기능을 가진 최종 UI 코드
+fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최종 UI 코드
+    //기본적으로 Compose에서 어떠한 상태 값이 바뀌게 되면 재구성(Recomposition)이 일어나게 된다.
+    //여기서 재구성이란, 말 그대로 재 생성한다는 뜻이다.
+    //만약 재구성하게 되면 기본값이 a인 텍스트뷰가 버튼 클릭 시 b로 바뀔 때 재구성되는데 이때 b로바뀌는게 아니라 a를 그대로 가지고 있게됨 재구성되었으니까
+    // 재구성이 되었을 때도 값을 저장할 수 있도록 하기 위하여 Compose에서는 remember 키워드를 제공한다.
+
+    //Compose에서 상태를 저장하고 상태가 변경 되었을 때 재구성하기 위해서는 관찰 가능한 객체를 사용해야 하는데
+    // MutableState클래스는 Compose에서 읽기와 쓰기를 관찰하기 위해 만들어진 클래스라고 생각하면 된다.
+
+    //val favourites = remember { mutableStateListOf<Track>()}
+    //대신에
+    //
+    //var favourites: MutableList<Track> by mutableStateOf(mutableListOf())
+    //var favourites by mutableStateOf(listOf<FavoriteItem>())
+    //그런 다음 add/remove/update:-를 사용하여 목록을 작성하십시오.
+    //
+    //favourites = favourites + newList // add
+    //favourites = favourites.toMutableList().also { it.remove(item) } // remov
+    //var list: List<TodoListData> by rememberSaveable { mutableStateOf(listOf()) }
+
+    //remember가 리컴포지션(재구성) 과정 전체에서 상태를 유지하는 데 도움은 되지만
+    //
+    //구성 변경시에 유지가 되지 않습니다.
+    //
+    //( the state is not retained across configuration changes.)
+    //이 경우에는 rememberSaveable을 사용해야 합니다.
+    //
+    // rememberSaveable은 Bundle에 저장할 수 있는 모든 값을 자동으로 저장합니다.
+
+    var todoListData by rememberSaveable { mutableStateOf(listOf<TodoListData>()) }
+    fun addTodo(todo: TodoListData) {
+        todoListData = todoListData + listOf(todo)
+    }
+
+    fun editTodo(i: Int, todo: TodoListData) {
+        todoListData = todoListData.toMutableList().also { it[i] = todo }
+    }
+
+    fun deleteTodo(i: Int) {
+        todoListData = todoListData.toMutableList().also { it.removeAt(i) }
+    }
+
     val navController = rememberNavController()
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
@@ -196,7 +215,14 @@ fun MainScreenView() { //바텀네이비게이션 바와 그 기능을 가진 �
             Activity.RESULT_OK -> {
                 when(activityResult?.data?.getIntExtra("flag", -1)) {
                     0 -> {
-
+                        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            activityResult.data?.getParcelableExtra("data", TodoListData::class.java)
+                        } else {
+                            activityResult.data?.getParcelableExtra<TodoListData>("data")
+                        }
+                        if (data != null) {
+                            addTodo(data)
+                        }
                     }
                 }
             }
@@ -216,8 +242,9 @@ fun MainScreenView() { //바텀네이비게이션 바와 그 기능을 가진 �
         },
         bottomBar = { BottomNavigation(navController = navController) }
     ) {
+
         Box(Modifier.padding(it)){
-            NavigationGraph(navController = navController)
+            NavigationGraph(navController = navController, todoListData)
         }
     }
 }
@@ -244,7 +271,7 @@ fun MyTopAppBar(onAction: () -> Unit) {
 }
 
 @Composable
-fun BottomNavigation(navController: NavHostController) {
+fun BottomNavigation(navController: NavHostController) { //바텀 뷰 그리기
     val items = listOf<BottomNavItem>(
         BottomNavItem.Home,
         BottomNavItem.Calendar,
@@ -296,13 +323,13 @@ fun BottomNavigation(navController: NavHostController) {
 
 /*-----------------바텀 메뉴 화면 설정(FrameLayout 즉, 보여질 화면들 여기서 화면의 기능 및 디자인을 구현)--------------------*/
 @Composable
-fun BottomNavigationHomeView() {
+fun BottomNavigationHomeView(todoData : List<TodoListData>) {
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
         .background(Color.White) //, RoundedCornerShape(24.dp)
     ) {
-        InitRecyclerViewUI()
+        InitRecyclerViewUI(todoData)
     }
 }
 
@@ -362,10 +389,10 @@ fun BottomNavigationSettingView() {
 //NavController는 대상을 이동시키는 요소입니다. 이는 NavHost내에서 사용됩니다.
 //즉 이제 각 item이 각 화면과 연결되었습니다.
 @Composable
-fun NavigationGraph(navController: NavHostController) {
+fun NavigationGraph(navController: NavHostController, todoData: List<TodoListData>) { //바텀 메뉴 클릭 시 이동 도와줌
     NavHost(navController = navController, startDestination = BottomNavItem.Home.screenRoute) {
         composable(BottomNavItem.Home.screenRoute) { //composalbe안에는 보여질 메뉴의 이름
-            BottomNavigationHomeView()
+            BottomNavigationHomeView(todoData)
         }
         composable(BottomNavItem.Calendar.screenRoute) {
             BottomNavigationCalendarView()

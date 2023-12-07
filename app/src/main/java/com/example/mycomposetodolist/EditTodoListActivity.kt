@@ -1,10 +1,12 @@
 package com.example.mycomposetodolist
 
-import android.graphics.drawable.shapes.Shape
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -15,9 +17,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.MaterialTheme.colors
-import androidx.compose.material.Typography
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,25 +31,34 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mycomposetodolist.dataclass.TodoListData
 import com.example.mycomposetodolist.ui.theme.MyComposeTodoListTheme
-import com.example.mycomposetodolist.ui.theme.Shapes
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class EditTodoListActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MyComposeTodoListTheme {
-                // A surface container using the 'background' color from the theme
                 val type = intent.getStringExtra("type")
+                val context = LocalContext.current
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background
+                    color = Color.White
                 ) {
-
+                    EditView(type, onClick = {
+                        val intent = Intent(context, MainActivity::class.java).apply {
+                            putExtra("flag", 0)
+                            putExtra("data", it)
+                        }
+                        setResult(RESULT_OK, intent)
+                        finish()
+                    })
                 }
             }
         }
@@ -58,12 +66,24 @@ class EditTodoListActivity : ComponentActivity() {
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun EditView(type : String) {
+fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?) {
     var titleText by remember { mutableStateOf(TextFieldValue("")) }
     var contentText by remember { mutableStateOf(TextFieldValue("")) }
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+
+    val todayDate = remember { LocalDate.now() }
+    val formattedDate = remember(todayDate) {
+        todayDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+    }
+
+    var id by remember {
+        mutableStateOf(0)
+    }
+    val addTodo = TodoListData(id, titleText.text, contentText.text, formattedDate, false)
+
     //현재 소프트웨어 키보드를 제어한 다음 hide메서드를 사용할 수 있습니다.
     //val keyboardController = LocalSoftwareKeyboardController.current
     //keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -81,7 +101,10 @@ fun EditView(type : String) {
             .padding(8.dp))
         TextField( //만약 완벽하게 커스텀하고 싶으면?->BasicTextField를 사용
             value = titleText, //초기값 설정
-            onValueChange = { newText -> titleText = newText }, //값 변경 시 어떻게 할것인지
+            onValueChange = { newText ->
+                titleText = newText
+                addTodo.title = titleText.text
+            }, //값 변경 시 어떻게 할것인지
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
@@ -92,6 +115,7 @@ fun EditView(type : String) {
                 unfocusedIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
                 backgroundColor =  Color.White,
+                cursorColor = Color.Black
             ),
             //hint 설정
             placeholder = { Text(stringResource(R.string.edit_Text_Title_Hint), color = Color.Gray, fontFamily = FontFamily.SansSerif) },
@@ -118,7 +142,10 @@ fun EditView(type : String) {
         BasicTextField( //BasicTextField를 이용하면 Text와 TextField사이의 padding값을 조절할 수 있게 된다.
             //대신 hint가 없음
             value = contentText,
-            onValueChange = {newText -> contentText = newText},
+            onValueChange = {newText ->
+                contentText = newText
+                addTodo.content = contentText.text
+            },
             textStyle = TextStyle(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
@@ -150,13 +177,33 @@ fun EditView(type : String) {
                 }
             }
         )
+
+        Button(onClick = {
+            if (onClick != null) {
+                onClick(addTodo)
+            }
+            id++
+        },
+            modifier = Modifier
+                .wrapContentSize()
+                .align(Alignment.End),
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = MaterialTheme.colors.background,
+                contentColor = Color.White,
+                disabledBackgroundColor = Color.Gray,
+                disabledContentColor = Color.White
+            )
+        ) { //이 부분이 버튼의 content부분
+            Text(text = "완료", fontWeight = FontWeight.Medium, fontFamily = FontFamily.Default)
+        }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 fun PreviewTest() {
     MyComposeTodoListTheme {
-        EditView("ADD")
+        EditView("ADD", null)
     }
 }

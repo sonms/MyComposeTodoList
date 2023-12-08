@@ -12,11 +12,6 @@
         android:theme="@style/Theme.MyComposeTodoList"
         tools:targetApi="31">
         <activity
-            android:name=".CalendarView"
-            android:exported="false"
-            android:label="@string/title_activity_calendar_view"
-            android:theme="@style/Theme.MyComposeTodoList" />
-        <activity
             android:name=".EditTodoListActivity"
             android:exported="false"
             android:label="@string/title_activity_edit_todo_list"

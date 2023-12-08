@@ -52,12 +52,30 @@ class EditTodoListActivity : ComponentActivity() {
                     color = Color.White
                 ) {
                     EditView(type, onClick = {
-                        val intent = Intent(context, MainActivity::class.java).apply {
-                            putExtra("flag", 0)
-                            putExtra("data", it)
+                        if (type == "ADD") {
+                            val intent = Intent(context, MainActivity::class.java).apply {
+                                putExtra("flag", 0)
+                                putExtra("data", it)
+                            }
+                            setResult(RESULT_OK, intent)
+                            finish()
+                        } else {
+                            val intent = Intent(context, MainActivity::class.java).apply {
+                                putExtra("flag", 1)
+                                putExtra("data", it)
+                            }
+                            setResult(RESULT_OK, intent)
+                            finish()
                         }
-                        setResult(RESULT_OK, intent)
-                        finish()
+                    },
+                    data = if (type == "EDIT") {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra("data", TodoListData::class.java)
+                        } else {
+                            intent.getParcelableExtra<TodoListData>("data")
+                        }
+                    } else {
+                        null
                     })
                 }
             }
@@ -68,9 +86,12 @@ class EditTodoListActivity : ComponentActivity() {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?) {
+fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?, data : TodoListData?) {
     var titleText by remember { mutableStateOf(TextFieldValue("")) }
     var contentText by remember { mutableStateOf(TextFieldValue("")) }
+    var editTitleText by remember { mutableStateOf(TextFieldValue(data?.title.toString())) }
+    var editContentText by remember { mutableStateOf(TextFieldValue(data?.content.toString())) }
+
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
@@ -100,10 +121,19 @@ fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?) {
             .fillMaxWidth()
             .padding(8.dp))
         TextField( //만약 완벽하게 커스텀하고 싶으면?->BasicTextField를 사용
-            value = titleText, //초기값 설정
+            value = if (type == "ADD") {
+                titleText
+            } else {
+                editTitleText
+            }, //초기값 설정
             onValueChange = { newText ->
                 titleText = newText
-                addTodo.title = titleText.text
+                editTitleText = newText
+                addTodo.title = if (type == "ADD") {
+                    titleText.text
+                } else {
+                    editTitleText.text
+                }
             }, //값 변경 시 어떻게 할것인지
             modifier = Modifier
                 .fillMaxWidth()
@@ -141,10 +171,19 @@ fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?) {
             .padding(8.dp, top = 50.dp))
         BasicTextField( //BasicTextField를 이용하면 Text와 TextField사이의 padding값을 조절할 수 있게 된다.
             //대신 hint가 없음
-            value = contentText,
+            value = if (type == "ADD") {
+                contentText
+            } else {
+                editContentText
+            },
             onValueChange = {newText ->
                 contentText = newText
-                addTodo.content = contentText.text
+                editContentText = newText
+                addTodo.content = if (type == "ADD") {
+                    contentText.text
+                } else {
+                    editContentText.text
+                }
             },
             textStyle = TextStyle(
                 fontSize = 16.sp,
@@ -204,6 +243,6 @@ fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?) {
 @Composable
 fun PreviewTest() {
     MyComposeTodoListTheme {
-        EditView("ADD", null)
+        EditView("ADD", null, null)
     }
 }

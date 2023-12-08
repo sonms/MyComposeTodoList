@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -11,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -49,6 +51,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import java.util.*
+import kotlin.collections.ArrayList
 
 
 lateinit var todoListAllData : ArrayList<TodoListData>
@@ -82,7 +86,8 @@ sealed class BottomNavItem(
 
 @Composable
 fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
-    todoData : List<TodoListData>
+    todoData : List<TodoListData>,
+    onClicked : () -> Unit
     ) {
 
     LazyColumn(
@@ -97,6 +102,7 @@ fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
             RecyclerViewItemLayout(
                 data = item,
                 modifier = Modifier.fillMaxSize(),
+                onClicked
             )
         }
     }
@@ -106,7 +112,8 @@ fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
 
 
 @Composable
-fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) { //리사이클러뷰 아이템 그리는곳
+fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked : () -> Unit) { //리사이클러뷰 아이템 그리는곳
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -117,8 +124,12 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier) { //리사이
     ) {
         Column(
             modifier = Modifier
-                .padding(12.dp),
-            verticalArrangement = Arrangement.Center
+                .padding(12.dp)
+                .clickable {
+                    Log.d("MainActivity", "ClickTest")
+                    onClicked()
+                },
+            verticalArrangement = Arrangement.Center,
         ) {
             Text( //제목
                 text = data.title.toString(),
@@ -200,8 +211,10 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
         todoListData = todoListData + listOf(todo)
     }
 
-    fun editTodo(i: Int, todo: TodoListData) {
-        todoListData = todoListData.toMutableList().also { it[i] = todo }
+    fun editTodo(i: Int?, todo: TodoListData) {
+        val index : Int = i ?: 0
+
+        todoListData = todoListData.toMutableList().also { it[index] = todo }
     }
 
     fun deleteTodo(i: Int) {
@@ -224,27 +237,45 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
                             addTodo(data)
                         }
                     }
+
+                    1-> {
+                        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            activityResult.data?.getParcelableExtra("data", TodoListData::class.java)
+                        } else {
+                            activityResult.data?.getParcelableExtra<TodoListData>("data")
+                        }
+                        if (data != null) {
+                            editTodo(data.id, data)
+                        }
+                    }
                 }
             }
         }
     }
 
-    val moveEditTodoList: () -> Unit = {
+    val moveAddEditTodoList: () -> Unit = {
         val intent = Intent(context, EditTodoListActivity::class.java).apply {
             putExtra("type", "ADD")
         }
         launcher.launch(intent)
     }
 
+    val moveEditEditTodoList: () -> Unit = {
+        val intent = Intent(context, EditTodoListActivity::class.java).apply {
+            putExtra("type", "EDIT")
+        }
+        launcher.launch(intent)
+    }
+
     Scaffold( //material ui 기본 틀로 bottomBar, topbar, floatingbtn, drawer등을 포함하며 그려준다
         topBar = {
-                 MyTopAppBar(onAction = { moveEditTodoList() })
+                 MyTopAppBar(onAction = { moveAddEditTodoList() })
         },
         bottomBar = { BottomNavigation(navController = navController) }
     ) {
 
         Box(Modifier.padding(it)){
-            NavigationGraph(navController = navController, todoListData)
+            NavigationGraph(navController = navController, todoListData, moveEditEditTodoList)
         }
     }
 }
@@ -299,7 +330,7 @@ fun BottomNavigation(navController: NavHostController) { //바텀 뷰 그리기
                 },
                 // label 선택 안했을 때도 보이는 메뉴 이름
                 label = { Text(stringResource(id = item.title), fontSize = 9.sp) },
-                selectedContentColor = MaterialTheme.colors.primary, //선택됐을 때 icon 색상
+                selectedContentColor = MaterialTheme.colors.background, //선택됐을 때 icon 색상
                 unselectedContentColor = Black, //선택되지 않았을때 icon 색상
                 selected = currentRoute == item.screenRoute, //언제 selected 상태가 될 지
                 alwaysShowLabel = true, //항상 라벨을 보여줄건지에 대한 참거짓
@@ -323,29 +354,27 @@ fun BottomNavigation(navController: NavHostController) { //바텀 뷰 그리기
 
 /*-----------------바텀 메뉴 화면 설정(FrameLayout 즉, 보여질 화면들 여기서 화면의 기능 및 디자인을 구현)--------------------*/
 @Composable
-fun BottomNavigationHomeView(todoData : List<TodoListData>) {
+fun BottomNavigationHomeView(todoData : List<TodoListData>, onClicked: () -> Unit) {
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
         .background(Color.White) //, RoundedCornerShape(24.dp)
     ) {
-        InitRecyclerViewUI(todoData)
+        InitRecyclerViewUI(todoData, onClicked)
     }
 }
 
 @Composable
 fun BottomNavigationCalendarView() {
+    val selectedDate = remember { mutableStateOf(Calendar.getInstance()) }
+    val selectedTime = remember { mutableStateOf(Calendar.getInstance()) }
+
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
         .background(Color.White)
     ) {
-        Text(text = stringResource(id = R.string.text_calendar),
-            style = MaterialTheme.typography.h1,
-            textAlign = TextAlign.Center, //textalign -> 글자정렬
-            color = Color.Black,
-            modifier = Modifier.align(Alignment.Center)
-        )
+
     }
 }
 
@@ -389,10 +418,10 @@ fun BottomNavigationSettingView() {
 //NavController는 대상을 이동시키는 요소입니다. 이는 NavHost내에서 사용됩니다.
 //즉 이제 각 item이 각 화면과 연결되었습니다.
 @Composable
-fun NavigationGraph(navController: NavHostController, todoData: List<TodoListData>) { //바텀 메뉴 클릭 시 이동 도와줌
+fun NavigationGraph(navController: NavHostController, todoData: List<TodoListData>, onClicked: () -> Unit) { //바텀 메뉴 클릭 시 이동 도와줌
     NavHost(navController = navController, startDestination = BottomNavItem.Home.screenRoute) {
         composable(BottomNavItem.Home.screenRoute) { //composalbe안에는 보여질 메뉴의 이름
-            BottomNavigationHomeView(todoData)
+            BottomNavigationHomeView(todoData, onClicked)
         }
         composable(BottomNavItem.Calendar.screenRoute) {
             BottomNavigationCalendarView()

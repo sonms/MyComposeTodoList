@@ -1,19 +1,26 @@
 package com.example.mycomposetodolist
 
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -36,10 +43,15 @@ fun MyCalendarView() { //최종 UI
     } else {
         TODO("VERSION.SDK_INT < O")
     }
+    var currentPage by remember { mutableStateOf(initialPage) } //현재 페이지
+    var currentMonth by remember {
+        mutableStateOf(LocalDate.now().month)
+    }
 
     val localDate = LocalDate.now()
     val yearMonth = YearMonth.from(localDate)
     val lastDayOfMonth = yearMonth.lengthOfMonth() //월의 마지막 날짜
+
 
     //페이지의 초기 위치를 설정합니다. 위에서 계산한 initialPage 값을 사용하여 현재 연도와 월에 해당하는 페이지로 설정합니다.
     val pagerState = rememberPagerState(
@@ -53,22 +65,77 @@ fun MyCalendarView() { //최종 UI
         lastDayOfMonth
     }
 
-    HorizontalPager(state = pagerState) {
+    //페이지 유지 변수의 현재 페이지 값이 변경될때 실행됨
+    LaunchedEffect(pagerState.currentPage) {
+        //추가될 월
+        val addMonth = (pagerState.currentPage - currentPage).toLong()
+        //현재 월 체인지
+        currentMonth = currentMonth.plus(addMonth)
+        currentPage = pagerState.currentPage
+    }
 
+    HorizontalPager(state = pagerState) {
+        Column(modifier = Modifier
+            .wrapContentSize()
+            .padding(8.dp))
+        {
+            CalendarHeader(title = "${LocalDate.now().year}년 ${LocalDate.now().monthValue}월")
+            DayOfWeek()
+            CalendarBody(currentDate = localDate)
+        }
     }
 }
 
 @Composable
 fun CalendarHeader(title : String) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Text(text = title)
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .padding(8.dp)) {
+        Text(
+            text = title,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun CalendarBody() {
+fun CalendarBody(
+    currentDate : LocalDate
+) {
+    val lastDay by remember { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        mutableStateOf(currentDate.lengthOfMonth())
+    } else {
+        TODO("VERSION.SDK_INT < O")
+    }}
 
+    val firstDayOfWeek by remember { mutableStateOf(currentDate.dayOfWeek.value) }
+    val days by remember { mutableStateOf(IntRange(1, lastDay).toList()) }
+    val today = LocalDate.now().toString().substring(8..9).toInt() //오늘날짜
+
+    //한줄에 7개로 고정
+    LazyVerticalGrid(
+        modifier = Modifier.wrapContentSize(),
+        columns = GridCells.Fixed(7)
+    ) {
+        for (i in 1 until firstDayOfWeek) { // 처음 날짜가 시작하는 요일 전까지 빈 박스 생성
+            item {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .padding(top = 10.dp)
+                )
+            }
+        }
+
+        items(days) {dayItem ->
+            if (dayItem == today) {
+                CalendarItem(date = dayItem, isToday = true)
+            } else {
+                CalendarItem(date = dayItem, isToday = false)
+            }
+        }
+    }
 }
 
 
@@ -85,7 +152,8 @@ fun DayOfWeek( //요일 표시
                         .weight(0.7f),
                     text = dayOfWeek.getDisplayName(java.time.format.TextStyle.NARROW, Locale.KOREAN),
                     style = TextStyle.Default,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }
@@ -94,30 +162,45 @@ fun DayOfWeek( //요일 표시
 
 
 @Composable
-fun CalendarItem(date : Int?) {
+fun CalendarItem(date : Int?, isToday : Boolean) {
     Column(modifier = Modifier
         .wrapContentSize()
+        .padding(top = 5.dp)
         .border(1.dp, Color.Black, shape = RoundedCornerShape(8.dp))
         .size(24.dp)
-        .clip(shape = RoundedCornerShape(10.dp)),// 둥근 모서리 모양으로 잘라내는 역할 border없이 사용하고싶을때
+        .clip(shape = RoundedCornerShape(10.dp))
+        .background(
+            if (isToday) {
+                Color.Black
+            } else {
+                Color.White
+            }
+        ),// 둥근 모서리 모양으로 잘라내는 역할 border없이 사용하고싶을때
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
             modifier = Modifier,
             text = date.toString(),
+            color = if (isToday) {
+                Color.White
+            } else {
+                Color.Black
+            },
             textAlign = TextAlign.Center,
             fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 fun UIPreview() {
+    val currentDate : LocalDate = LocalDate.now()
     MyComposeTodoListTheme {
-        CalendarItem(1)
-        DayOfWeek()
+        MyCalendarView()
     }
 }

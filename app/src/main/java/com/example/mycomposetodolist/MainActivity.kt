@@ -48,8 +48,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import java.util.*
 import kotlin.collections.ArrayList
@@ -325,15 +327,32 @@ fun BottomNavigation(navController: NavHostController) { //바텀 뷰 그리기
                         contentDescription = stringResource(id = item.title),
                         modifier = Modifier
                             .width(24.dp)
-                            .height(24.dp)
+                            .height(24.dp),
+                        tint = if (currentRoute == item.screenRoute) {
+                            colorResource(R.color.light_blue_400)
+                        } else {
+                            Color.Black
+                        }
                     )
                 },
                 // label 선택 안했을 때도 보이는 메뉴 이름
-                label = { Text(stringResource(id = item.title), fontSize = 9.sp) },
-                selectedContentColor = MaterialTheme.colors.background, //선택됐을 때 icon 색상
+                label = {
+                    if (currentRoute == item.screenRoute) {
+                        Text(
+                            stringResource(id = item.title),
+                            fontSize = 9.sp,
+                            color = colorResource(R.color.light_blue_400))}
+                   /* else {
+                        Text(
+                            text = "",
+                            fontSize = 9.sp
+                        )
+                    }*/
+                        },
+                selectedContentColor = colorResource(R.color.light_blue_400), //메뉴를 클릭할 때 나오는 색상
                 unselectedContentColor = Black, //선택되지 않았을때 icon 색상
                 selected = currentRoute == item.screenRoute, //언제 selected 상태가 될 지
-                alwaysShowLabel = true, //항상 라벨을 보여줄건지에 대한 참거짓
+                alwaysShowLabel = currentRoute == item.screenRoute, //항상 라벨을 보여줄건지에 대한 참거짓
                 onClick = { //click되면 어떤 행동을 취할지
                     //avController를 통해 navigate(이동)하게 구현해준 코드입니다.
                     //popUpTo()를 통해 startDestinationRoute만 스택에 쌓일 수 있게 만들었습니다.
@@ -419,7 +438,10 @@ fun BottomNavigationSettingView() {
 //즉 이제 각 item이 각 화면과 연결되었습니다.
 @Composable
 fun NavigationGraph(navController: NavHostController, todoData: List<TodoListData>, onClicked: () -> Unit) { //바텀 메뉴 클릭 시 이동 도와줌
-    NavHost(navController = navController, startDestination = BottomNavItem.Home.screenRoute) {
+    NavHost(
+        navController = navController,
+        startDestination = BottomNavItem.Home.screenRoute
+    ) {
         composable(BottomNavItem.Home.screenRoute) { //composalbe안에는 보여질 메뉴의 이름
             BottomNavigationHomeView(todoData, onClicked)
         }

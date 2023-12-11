@@ -60,6 +60,7 @@ import kotlin.collections.ArrayList
 
 lateinit var todoListAllData : ArrayList<TodoListData>
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -179,6 +180,7 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked : (
 
 
 //모든 뷰를 가진 최종 UI코드
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최종 UI 코드
     //기본적으로 Compose에서 어떠한 상태 값이 바뀌게 되면 재구성(Recomposition)이 일어나게 된다.
@@ -459,6 +461,7 @@ fun NavigationGraph(navController: NavHostController, todoData: List<TodoListDat
         }
     }
 }
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {

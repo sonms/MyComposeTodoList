@@ -28,7 +28,9 @@ import androidx.compose.ui.unit.sp
 import com.example.mycomposetodolist.ui.theme.MyComposeTodoListTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.Year
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 
@@ -45,7 +47,7 @@ fun MyCalendarView() { //최종 UI
     }
     var currentPage by remember { mutableStateOf(initialPage) } //현재 페이지
     var currentMonth by remember {
-        mutableStateOf(LocalDate.now().month)
+        mutableStateOf(LocalDate.now().monthValue)
     }
 
     val localDate = LocalDate.now()
@@ -66,22 +68,25 @@ fun MyCalendarView() { //최종 UI
     }
 
     //페이지 유지 변수의 현재 페이지 값이 변경될때 실행됨
-    LaunchedEffect(pagerState.currentPage) {
+    /*LaunchedEffect(pagerState.currentPage) {
         //추가될 월
         val addMonth = (pagerState.currentPage - currentPage).toLong()
         //현재 월 체인지
-        currentMonth = currentMonth.plus(addMonth)
+        currentMonth = currentMonth.plus(addMonth).toInt()
         currentPage = pagerState.currentPage
-    }
+    }*/
+
+    //val pageCount = (yearRange.last - yearRange.first) * 12
+    val firstDayOfMonth = LocalDate.of(LocalDate.now().year, LocalDate.now().monthValue, 1)
 
     HorizontalPager(state = pagerState) {
         Column(modifier = Modifier
             .wrapContentSize()
             .padding(8.dp))
         {
-            CalendarHeader(title = "${LocalDate.now().year}년 ${LocalDate.now().monthValue}월")
+            CalendarHeader(title = "${currentMonth}월")
             DayOfWeek()
-            CalendarBody(currentDate = localDate)
+            CalendarBody(currentDate = firstDayOfMonth)
         }
     }
 }
@@ -110,6 +115,7 @@ fun CalendarBody(
     }}
 
     val firstDayOfWeek by remember { mutableStateOf(currentDate.dayOfWeek.value) }
+
     val days by remember { mutableStateOf(IntRange(1, lastDay).toList()) }
     val today = LocalDate.now().toString().substring(8..9).toInt() //오늘날짜
 
@@ -195,11 +201,10 @@ fun CalendarItem(date : Int?, isToday : Boolean) {
 }
 
 
-@RequiresApi(Build.VERSION_CODES.O)
+
 @Preview(showBackground = true)
 @Composable
 fun UIPreview() {
-    val currentDate : LocalDate = LocalDate.now()
     MyComposeTodoListTheme {
         MyCalendarView()
     }

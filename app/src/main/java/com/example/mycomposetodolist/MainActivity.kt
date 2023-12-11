@@ -393,7 +393,7 @@ fun BottomNavigationCalendarView() {
         .border(1.dp, Color.Cyan)
         .background(Color.White)
     ) {
-
+        MyCalendarView()
     }
 }
 

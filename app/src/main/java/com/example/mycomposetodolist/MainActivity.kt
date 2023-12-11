@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -383,6 +384,7 @@ fun BottomNavigationHomeView(todoData : List<TodoListData>, onClicked: () -> Uni
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun BottomNavigationCalendarView() {
     val selectedDate = remember { mutableStateOf(Calendar.getInstance()) }
@@ -393,7 +395,7 @@ fun BottomNavigationCalendarView() {
         .border(1.dp, Color.Cyan)
         .background(Color.White)
     ) {
-        MyCalendarView()
+        CalendarScreen()
     }
 }
 
@@ -436,6 +438,7 @@ fun BottomNavigationSettingView() {
 //class내에 있는 함수로 어떤 route(위치)에서 어떤 화면을 보여줄 지 결정합니다.
 //NavController는 대상을 이동시키는 요소입니다. 이는 NavHost내에서 사용됩니다.
 //즉 이제 각 item이 각 화면과 연결되었습니다.
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun NavigationGraph(navController: NavHostController, todoData: List<TodoListData>, onClicked: () -> Unit) { //바텀 메뉴 클릭 시 이동 도와줌
     NavHost(

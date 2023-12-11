@@ -3,6 +3,7 @@ package com.example.mycomposetodolist
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -46,26 +47,42 @@ class EditTodoListActivity : ComponentActivity() {
         setContent {
             MyComposeTodoListTheme {
                 val type = intent.getStringExtra("type")
+                if (type != null) {
+                    Log.d("EDITACTIVITY", type)
+                }
+                val selectedDate = intent.getStringExtra("selectedDate")
                 val context = LocalContext.current
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.White
                 ) {
                     EditView(type, onClick = {
-                        if (type == "ADD") {
-                            val intent = Intent(context, MainActivity::class.java).apply {
-                                putExtra("flag", 0)
-                                putExtra("data", it)
+                        when (type) {
+                            "ADD" -> {
+                                val intent = Intent(context, MainActivity::class.java).apply {
+                                    putExtra("flag", 0)
+                                    putExtra("data", it)
+                                }
+                                setResult(RESULT_OK, intent)
+                                finish()
                             }
-                            setResult(RESULT_OK, intent)
-                            finish()
-                        } else {
-                            val intent = Intent(context, MainActivity::class.java).apply {
-                                putExtra("flag", 1)
-                                putExtra("data", it)
+                            "EDIT" -> {
+                                val intent = Intent(context, MainActivity::class.java).apply {
+                                    putExtra("flag", 1)
+                                    putExtra("data", it)
+                                }
+                                setResult(RESULT_OK, intent)
+                                finish()
                             }
-                            setResult(RESULT_OK, intent)
-                            finish()
+                            else -> {
+                                val intent = Intent(context, MainActivity::class.java).apply {
+                                    putExtra("flag", 3)
+                                    putExtra("data", it)
+                                    putExtra("selectedDate", selectedDate)
+                                }
+                                setResult(RESULT_OK, intent)
+                                finish()
+                            }
                         }
                     },
                     data = if (type == "EDIT") {
@@ -121,18 +138,18 @@ fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?, data : TodoListD
             .fillMaxWidth()
             .padding(8.dp))
         TextField( //만약 완벽하게 커스텀하고 싶으면?->BasicTextField를 사용
-            value = if (type == "ADD") {
-                titleText
-            } else {
-                editTitleText
+            value = when (type) {
+                "ADD" -> titleText
+                "EDIT" -> editTitleText
+                else -> titleText
             }, //초기값 설정
             onValueChange = { newText ->
                 titleText = newText
                 editTitleText = newText
-                addTodo.title = if (type == "ADD") {
-                    titleText.text
-                } else {
-                    editTitleText.text
+                addTodo.title = when (type) {
+                    "ADD" -> titleText.text
+                    "EDIT" -> editTitleText.text
+                    else -> titleText.text
                 }
             }, //값 변경 시 어떻게 할것인지
             modifier = Modifier
@@ -171,18 +188,18 @@ fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?, data : TodoListD
             .padding(8.dp, top = 50.dp))
         BasicTextField( //BasicTextField를 이용하면 Text와 TextField사이의 padding값을 조절할 수 있게 된다.
             //대신 hint가 없음
-            value = if (type == "ADD") {
-                contentText
-            } else {
-                editContentText
+            value = when (type) {
+                "ADD" -> contentText
+                "EDIT" -> editContentText
+                else -> contentText
             },
             onValueChange = {newText ->
                 contentText = newText
                 editContentText = newText
-                addTodo.content = if (type == "ADD") {
-                    contentText.text
-                } else {
-                    editContentText.text
+                addTodo.content = when (type) {
+                    "ADD" -> contentText.text
+                    "EDIT" -> editContentText.text
+                    else -> contentText.text
                 }
             },
             textStyle = TextStyle(

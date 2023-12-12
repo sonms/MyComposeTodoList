@@ -181,6 +181,7 @@ fun CalendarScreen() {
             val totalDays = daysInMonth + daysBefore + daysAfter //42 이번달일수31+위숫자두개4+7
 
             val today = LocalDate.now().toString().substring(8..9).toInt() //오늘날짜
+            val todayMonth = LocalDate.now().toString().substring(5..6).toInt()
 
             items(totalDays) { dayIndex ->
                 val day: Int
@@ -209,7 +210,7 @@ fun CalendarScreen() {
                 val date = LocalDate.now()
                 var isSelected = false //현재 날짜(오늘)인지 판별
 
-                if (day == today) {
+                if (day == today && yearMonth.monthValue == todayMonth) { //현재 날짜 체크, 월과 날짜로 판별
                     isSelected = true
                 }
                 

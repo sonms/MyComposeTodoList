@@ -54,11 +54,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
+import com.example.mycomposetodolist.component.StatisticsScreen
 import java.util.*
 import kotlin.collections.ArrayList
 
-
-lateinit var todoListAllData : ArrayList<TodoListData>
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -211,10 +210,25 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
     //
     // rememberSaveable은 Bundle에 저장할 수 있는 모든 값을 자동으로 저장합니다.
 
+    val todoAllData = ArrayList<TodoListData>()
+
     var todoListData by rememberSaveable { mutableStateOf(listOf<TodoListData>()) }
     fun addTodo(todo: TodoListData) {
         todoListData = todoListData + listOf(todo)
     }
+
+    val calendarTodoListData by rememberSaveable { mutableStateOf(hashMapOf<String, List<TodoListData>>()) }
+    fun addCalendarTodo(key : String, todo: TodoListData) {
+        // 기존에 키에 대한 값이 있는지 확인
+        val existingList = calendarTodoListData[key] ?: emptyList()
+
+        // 새로운 할일을 추가한 새로운 리스트 생성
+        val updatedList = existingList + todo
+
+        // 새로운 리스트로 기존 맵 업데이트
+        calendarTodoListData[key] = updatedList
+    }
+
 
     fun editTodo(i: Int?, todo: TodoListData) {
         val index : Int = i ?: 0
@@ -226,12 +240,21 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
         todoListData = todoListData.toMutableList().also { it.removeAt(i) }
     }
 
+    LaunchedEffect(todoListData, calendarTodoListData) {
+        todoAllData.clear()
+        todoAllData.addAll(todoListData)
+
+        calendarTodoListData.values.forEach { list ->
+            todoAllData.addAll(list)
+        }
+    }
+
     val navController = rememberNavController()
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
         when (activityResult.resultCode) {
             Activity.RESULT_OK -> {
-                when(activityResult?.data?.getIntExtra("flag", -1)) {
+                when(activityResult.data?.getIntExtra("flag", -1)) {
                     0 -> {
                         val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             activityResult.data?.getParcelableExtra("data", TodoListData::class.java)
@@ -251,6 +274,20 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
                         }
                         if (data != null) {
                             editTodo(data.id, data)
+                        }
+                    }
+
+                    3 -> {
+                        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            activityResult.data?.getParcelableExtra("data", TodoListData::class.java)
+                        } else {
+                            activityResult.data?.getParcelableExtra<TodoListData>("data")
+                        }
+
+                        val date = activityResult.data?.getStringExtra("selectedDate")
+
+                        if (data != null && date != null) {
+                            addCalendarTodo(date, data)
                         }
                     }
                 }
@@ -402,18 +439,19 @@ fun BottomNavigationCalendarView() {
 }
 
 @Composable
-fun BottomNavigationStatisticsView() { //통계분석, 일주일마다
+fun BottomNavigationStatisticsView(todoData : List<TodoListData>) { //통계분석, 일주일마다
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
         .background(Color.White)
     ) {
-        Text(text = stringResource(id = R.string.text_statistics),
+        /*Text(text = stringResource(id = R.string.text_statistics),
             style = MaterialTheme.typography.h1,
             textAlign = TextAlign.Center, //textalign -> 글자정렬
             color = Color.Black,
             modifier = Modifier.align(Alignment.Center)
-        )
+        )*/
+        StatisticsScreen(data = todoData)
     }
 }
 
@@ -442,7 +480,11 @@ fun BottomNavigationSettingView() {
 //즉 이제 각 item이 각 화면과 연결되었습니다.
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun NavigationGraph(navController: NavHostController, todoData: List<TodoListData>, onClicked: () -> Unit) { //바텀 메뉴 클릭 시 이동 도와줌
+fun NavigationGraph(
+    navController: NavHostController,
+    todoData: List<TodoListData>,
+    onClicked: () -> Unit
+) { //바텀 메뉴 클릭 시 이동 도와줌
     NavHost(
         navController = navController,
         startDestination = BottomNavItem.Home.screenRoute
@@ -454,7 +496,7 @@ fun NavigationGraph(navController: NavHostController, todoData: List<TodoListDat
             BottomNavigationCalendarView()
         }
         composable(BottomNavItem.Statistics.screenRoute) {
-            BottomNavigationStatisticsView()
+            BottomNavigationStatisticsView(todoData)
         }
         composable(BottomNavItem.Setting.screenRoute) {
             BottomNavigationSettingView()

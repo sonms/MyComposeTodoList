@@ -3,14 +3,13 @@ package com.example.mycomposetodolist
 import android.app.Activity
 import android.content.Intent
 import android.os.Build
-import android.os.Bundle
-import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -25,10 +24,10 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -42,28 +41,44 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.util.*
-import kotlin.collections.HashMap
 
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun CalendarScreen() {
+fun CalendarScreen(data: Map<String, List<TodoListData>>) {
     //데이터 관리
-    val todoListData by rememberSaveable { mutableStateOf(hashMapOf<String, List<TodoListData>>()) }
+    var todoListData by rememberSaveable { mutableStateOf(data) }
+    // TodoItemScreen에 전달할 MutableMap
+    val todoData = remember { mutableStateOf(todoListData.toMap()) }
+
+
     fun addTodo(key : String, todo: TodoListData) {
-        // 기존에 키에 대한 값이 있는지 확인
-        val existingList = todoListData[key] ?: emptyList()
+        // 기존 데이터를 가져오기
+        val existingList = todoListData.toMutableMap()
 
-        // 새로운 할일을 추가한 새로운 리스트 생성
-        val updatedList = existingList + todo
+        // key에 해당하는 List를 가져오기
+        val updatedList = existingList[key]?.toMutableList() ?: mutableListOf()
 
-        // 새로운 리스트로 기존 맵 업데이트
-        todoListData[key] = updatedList
+        //리스트에 변경사항 적용 지금은 추가
+        updatedList.add(todo)
+
+        // 변경된 List를 다시 맵에 할당
+        existingList[key] = updatedList
+
+        // 변경된 데이터로 MutableState 업데이트
+        todoListData = existingList.toMap()
+
+        //전달할 데이터도 업데이트
+        todoData.value = todoListData.toMap()
     }
 
     //현재 선택된 날짜를 나타내는 변수입니다.
     //초기값으로 현재 날짜(LocalDate.now())가 설정되어 있습니다.
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+
+    //날짜 클릭 시 해당 날짜를 기억하는 변수
+    var clickedDate by remember {
+        mutableStateOf("")
+    }
 
     //현재 년도와 월을 나타내는 YearMonth 객체를 나타내는 변수입니다
     //초기값으로는 현재 년도와 월(YearMonth.now())이 설정되어 있습니다.
@@ -76,7 +91,7 @@ fun CalendarScreen() {
             Activity.RESULT_OK -> {
                 when(activityResult.data?.getIntExtra("flag", -1)) {
                     3 -> {
-                        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val getData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             activityResult.data?.getParcelableExtra("data", TodoListData::class.java)
                         } else {
                             activityResult.data?.getParcelableExtra<TodoListData>("data")
@@ -84,8 +99,8 @@ fun CalendarScreen() {
 
                         val date = activityResult.data?.getStringExtra("selectedDate")
 
-                        if (data != null && date != null) {
-                            addTodo(date, data)
+                        if (getData != null && date != null) {
+                            addTodo(date, getData)
                         }
                     }
 
@@ -221,28 +236,77 @@ fun CalendarScreen() {
                     isSelected = isSelected,
                     onClick = {
                         selectedDate = date
+                        clickedDate = "${yearMonth.year}-${yearMonth.monthValue}-${day}"
+                        Toast.makeText(context, clickedDate, Toast.LENGTH_SHORT).show()
+                        println(clickedDate)
+                        addTodo(clickedDate, TodoListData(1,"s","g","cl",false))
                         val intent = Intent(context, EditTodoListActivity::class.java).apply {
                             putExtra("type", "CalendarAdd")
                             putExtra("selectedDate", date.toString())
                         }
                         launcher.launch(intent)
+                    },
+                    onLongClick = {
+                        Toast.makeText(context, "Long Click", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+        } //vertical grid
+
+        //hm["2023-12-12"] = listOf(TodoListData(1, "제목", "내용", "2023-12-11", false))
+        println(todoListData)
+        // Lazycolumn 아래에 상태 변수 추가
+        var selectedItemIndex by remember { mutableStateOf(-1) }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+
+            ) {
+            //toList()는 매번 리스트를 새로 생성하므로 인덱스가 변경될 때마다
+            // 다른 리스트를 참조하게 되어 문제가 발생할 수 있습니다.
+            /*itemsIndexed(items = todoListData.toList()) {
+                    index, item ->
+                TodoItemLayout(
+                    data = item.second[index],
+                    modifier = Modifier.fillMaxSize(),
+                    isClicked = index == selectedItemIndex,
+                    onClick = {
+                        selectedItemIndex = index
+                    }
+                )
+            }*/
+            // itemsIndexed함수는 각 항목에 대해 컴포저블을 생성할 때 인덱스 정보를 제공합니다.
+            //items는 제공하지 않음
+            /*
+            * 인덱스 정보가 필요하지 않고 각 항목을 그냥 표시하면 items를 사용하면 됩니다.
+            *  하지만 특정 인덱스에 따른 동작이 필요하거나 인덱스를 기반으로 추가적인
+            *  작업을 해야 할 때는 itemsIndexed를 사용*/
+
+            itemsIndexed(items = todoListData[clickedDate].orEmpty()) {
+                    index, item ->
+                println(item)
+                TodoItemLayout(
+                    data = item,
+                    modifier = Modifier.fillMaxSize(),
+                    isClicked = index == selectedItemIndex,
+                    onClick = {
+                        selectedItemIndex = index
                     }
                 )
             }
         }
-
-        val hm = kotlin.collections.HashMap<String, kotlin.collections.List<TodoListData>>()
-        hm["2023-12-12"] = listOf(TodoListData(1, "제목", "내용", "2023-12-11", false))
-        TodoItemScreen(todoData = hm)
-    }
+    } //column
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DayItem(
     day: Int,
     isInCurrentMonth: Boolean,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick : () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -256,8 +320,39 @@ fun DayItem(
                     isInCurrentMonth -> Color.Transparent
                     else -> Color.Gray
                 }
-            )
-            .clickable(onClick = onClick),
+            ).combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
+            /*.pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    onClick() // Handle regular click
+                }
+                detectTransformGestures { _, pan, _, _ ->
+                    if (pan.x != 0f || pan.y != 0f) {
+                        // Reset state when user starts panning
+                        // to avoid long click being triggered while panning
+                        onLongClick()
+                    }
+                }
+
+            }*/
+            /*.combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )*/
+        /*
+        * .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    onClick() // Handle regular click
+                }
+
+                detectTransformGestures(
+                * onLongPress = {
+                             // perform some action here..
+                     })
+            }
+        * */
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -275,28 +370,33 @@ fun DayItem(
 }
 
 @Composable
-fun TodoItemScreen(todoData : HashMap<String, List<TodoListData>>?) {
+fun TodoItemScreen(todoData: MutableState<Map<String, List<TodoListData>>>) {
+    /*
+    * MutableState는 Compose에서 상태를 관리하기 위한 일반적인 인터페이스입니다. MutableState를 사용하여 Compose에서 상태를 정의하고 관리할 수 있습니다.
+
+    MutableState는 읽기 및 쓰기가 가능한 상태를 나타냅니다. 상태를 변경하려면 value 속성에 직접 접근하여 수정합니다.
+
+    MutableState 인터페이스를 구현한 클래스로 mutableStateOf 함수를 통해 간편하게 생성할 수 있습니다.
+* *///개인적 생각 : MutableState 은 생성자 느낌? val s : ArrayList<T> = ArrayList()에서 : 의 생성자로 remember와 mutableStateOf를 사용하도록하는것같음
     /////////LazyColumn 관측 변수
-    var todoNullCheckDataList by rememberSaveable {
-        mutableStateOf(listOf(listOf<TodoListData>()))
+    val todoNullCheckDataList by rememberSaveable {
+        mutableStateOf(todoData.value)
     }
     // Lazycolumn 아래에 상태 변수 추가
     var selectedItemIndex by remember { mutableStateOf(-1) }
 
-    //todoList 추가할 곳
-    if (todoData != null ) {
-        todoNullCheckDataList = todoData.values.toList()
-    }
+    println("NULLCHECK" + todoNullCheckDataList)
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(8.dp),
 
     ) {
-        itemsIndexed(items = todoNullCheckDataList) {
+        itemsIndexed(items = todoNullCheckDataList.toList()) {
                 index, item ->
             TodoItemLayout(
-                data = item[index],
+                data = item.second[index],
                 modifier = Modifier.fillMaxSize(),
                 isClicked = index == selectedItemIndex,
                 onClick = {
@@ -304,6 +404,19 @@ fun TodoItemScreen(todoData : HashMap<String, List<TodoListData>>?) {
                 }
             )
         }
+
+        /*for ((key, value) in todoNullCheckDataList.value) {
+            item {
+                TodoItemLayout(
+                    data = value,
+                    modifier = Modifier.fillMaxSize(),
+                    isClicked = key == selectedItemIndex.toString(),
+                    onClick = {
+                        selectedItemIndex = key.toInt()
+                    }
+                )
+            }
+        }*/
     }
 }
 
@@ -374,8 +487,8 @@ fun TodoItemLayout(data: TodoListData, modifier: Modifier, isClicked : Boolean, 
 @Preview(showBackground = true)
 @Composable
 fun CalendarScreenPreview() {
-    /*val hm = kotlin.collections.HashMap<String, kotlin.collections.List<TodoListData>>()
-    hm.put("2023-12-12", listOf(TodoListData(1, "제목", "내용", "2023-12-11", false)))*/
-    CalendarScreen()
+    val hm = kotlin.collections.HashMap<String, kotlin.collections.List<TodoListData>>()
+    hm["2023-12-12"] = listOf(TodoListData(1, "제목", "내용", "2023-12-11", false))
+    CalendarScreen(hm)
     //TodoItemScreen(todoData = hm)
 }

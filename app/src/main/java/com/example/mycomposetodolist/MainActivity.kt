@@ -426,15 +426,15 @@ fun BottomNavigationHomeView(todoData : List<TodoListData>, onClicked: () -> Uni
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun BottomNavigationCalendarView() {
-    val selectedDate = remember { mutableStateOf(Calendar.getInstance()) }
-    val selectedTime = remember { mutableStateOf(Calendar.getInstance()) }
-
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
         .background(Color.White)
     ) {
-        CalendarScreen()
+        val hm = mutableMapOf<String, List<TodoListData>>()
+        hm["2023-12-1"] = listOf(TodoListData(2, "제목1", "내용1", "clickedDate", false))
+
+        CalendarScreen(hm)
     }
 }
 

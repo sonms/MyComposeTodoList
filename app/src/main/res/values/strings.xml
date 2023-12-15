@@ -10,4 +10,5 @@
     <string name="edit_Text_Title_Hint">제목 작성</string>
     <string name="edit_Text_Content_Hint">내용 작성</string>
     <string name="title_activity_calendar_view">CalendarView</string>
+    <string name="title_activity_remove_todo_list">RemoveTodoListActivity</string>
 </resources>

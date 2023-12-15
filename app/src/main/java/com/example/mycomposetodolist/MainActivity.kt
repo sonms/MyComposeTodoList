@@ -4,34 +4,25 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Black
-import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,12 +39,10 @@ import com.example.mycomposetodolist.ui.theme.MyComposeTodoListTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.window.Dialog
 import com.example.mycomposetodolist.component.StatisticsScreen
 import java.util.*
 import kotlin.collections.ArrayList
@@ -89,8 +78,9 @@ sealed class BottomNavItem(
 
 @Composable
 fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
-    todoData : List<TodoListData>,
-    onClicked : () -> Unit
+    todoData: List<TodoListData>,
+    onClicked: (TodoListData) -> Unit,
+    onLongClicked: (Boolean) -> Unit
     ) {
 
     LazyColumn(
@@ -105,17 +95,19 @@ fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
             RecyclerViewItemLayout(
                 data = item,
                 modifier = Modifier.fillMaxSize(),
-                onClicked
+                onClicked,
+                onLongClicked
             )
         }
     }
-    
+
 }
 
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked : () -> Unit) { //리사이클러뷰 아이템 그리는곳
+fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean) -> Unit) { //리사이클러뷰 아이템 그리는곳
     val context = LocalContext.current
     Card(
         modifier = Modifier
@@ -128,10 +120,14 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked : (
         Column(
             modifier = Modifier
                 .padding(12.dp)
-                .clickable {
+                .combinedClickable(
+                    onClick = { onClicked(data) },
+                    onLongClick = { onLongClicked(true) },
+                ),
+            /*clickable {
                     Log.d("MainActivity", "ClickTest")
                     onClicked()
-                },
+                }*/
             verticalArrangement = Arrangement.Center,
         ) {
             Text( //제목
@@ -171,12 +167,6 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked : (
 
     }
 }
-
-
-
-
-
-
 
 //모든 뷰를 가진 최종 UI코드
 @RequiresApi(Build.VERSION_CODES.O)
@@ -236,8 +226,11 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
         todoListData = todoListData.toMutableList().also { it[index] = todo }
     }
 
-    fun deleteTodo(i: Int) {
-        todoListData = todoListData.toMutableList().also { it.removeAt(i) }
+
+    fun deleteTodo(i: Int?) {
+        if (i != null) {
+            todoListData = todoListData.toMutableList().also { it.removeAt(i) }
+        }
     }
 
     LaunchedEffect(todoListData, calendarTodoListData) {
@@ -248,6 +241,8 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
             todoAllData.addAll(list)
         }
     }
+
+
 
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -302,11 +297,24 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
         launcher.launch(intent)
     }
 
-    val moveEditEditTodoList: () -> Unit = {
+    val moveEditEditTodoList: (TodoListData) -> Unit = {
         val intent = Intent(context, EditTodoListActivity::class.java).apply {
             putExtra("type", "EDIT")
+            putExtra("data", it)
         }
         launcher.launch(intent)
+    }
+
+    //dialog 통제 변수
+    var isShow by remember {
+        mutableStateOf(false)
+    }
+    val moveRemoveTodoList : (Boolean) -> Unit = {
+        /*val intent = Intent(context, RemoveTodoListActivity::class.java).apply {
+            putExtra("type", "DELETE")
+        }
+        launcher.launch(intent)*/
+        isShow = it
     }
 
     Scaffold( //material ui 기본 틀로 bottomBar, topbar, floatingbtn, drawer등을 포함하며 그려준다
@@ -317,7 +325,71 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
     ) {
 
         Box(Modifier.padding(it)){
-            NavigationGraph(navController = navController, todoListData, moveEditEditTodoList)
+            NavigationGraph(navController = navController, todoListData, moveEditEditTodoList, moveRemoveTodoList)
+        }
+    }
+}
+
+@Composable
+fun DialogScreen(isShow : Boolean) {
+    Dialog(onDismissRequest = { /*TODO*/ }) {
+
+    }
+}
+
+@Composable
+fun DialogContent() {
+    Column(modifier = Modifier
+        .wrapContentSize()
+        .padding(16.dp)
+    ) {
+      Text(
+          text = "Todo 삭제",
+          fontWeight = FontWeight.Bold,
+          fontSize = 12.sp,
+          color = Color.Black,
+          textAlign = TextAlign.Start
+      )
+      Text(
+          text = "삭제하시겠습니까?",
+          fontWeight = FontWeight.Medium,
+          fontSize = 8.sp,
+          color = Black,
+          textAlign = TextAlign.Start
+      )
+
+        Row(
+            modifier = Modifier
+                .wrapContentSize()
+                .padding(5.dp)
+        ) {
+            Button(onClick = { /*TODO*/ },
+            modifier = Modifier
+                .padding(top = 8.dp),
+            colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color.Black,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text(
+                    text = "취소",
+                )
+            }
+
+            Spacer(modifier = Modifier.size(8.dp))
+
+            Button(onClick = { /*TODO*/ },
+                modifier = Modifier
+                    .padding(top = 8.dp),
+                colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Color.Black,
+                        contentColor = Color.White,
+                    ),
+            ) {
+                Text(
+                    text = "확인",
+                )
+            }
         }
     }
 }
@@ -413,13 +485,13 @@ fun BottomNavigation(navController: NavHostController) { //바텀 뷰 그리기
 
 /*-----------------바텀 메뉴 화면 설정(FrameLayout 즉, 보여질 화면들 여기서 화면의 기능 및 디자인을 구현)--------------------*/
 @Composable
-fun BottomNavigationHomeView(todoData : List<TodoListData>, onClicked: () -> Unit) {
+fun BottomNavigationHomeView(todoData: List<TodoListData>, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean) -> Unit) {
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
         .background(Color.White) //, RoundedCornerShape(24.dp)
     ) {
-        InitRecyclerViewUI(todoData, onClicked)
+        InitRecyclerViewUI(todoData, onClicked, onLongClicked)
     }
 }
 
@@ -483,14 +555,15 @@ fun BottomNavigationSettingView() {
 fun NavigationGraph(
     navController: NavHostController,
     todoData: List<TodoListData>,
-    onClicked: () -> Unit
+    onClicked: (TodoListData) -> Unit,
+    onLongClicked: (Boolean) -> Unit
 ) { //바텀 메뉴 클릭 시 이동 도와줌
     NavHost(
         navController = navController,
         startDestination = BottomNavItem.Home.screenRoute
     ) {
         composable(BottomNavItem.Home.screenRoute) { //composalbe안에는 보여질 메뉴의 이름
-            BottomNavigationHomeView(todoData, onClicked)
+            BottomNavigationHomeView(todoData, onClicked, onLongClicked)
         }
         composable(BottomNavItem.Calendar.screenRoute) {
             BottomNavigationCalendarView()
@@ -509,6 +582,14 @@ fun NavigationGraph(
 fun DefaultPreview() {
     MyComposeTodoListTheme {
         MainScreenView()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DialogPreview() {
+    MyComposeTodoListTheme() {
+        DialogContent()
     }
 }
 /*

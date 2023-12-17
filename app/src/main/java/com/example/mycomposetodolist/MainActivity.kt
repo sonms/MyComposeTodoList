@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -39,6 +40,7 @@ import com.example.mycomposetodolist.ui.theme.MyComposeTodoListTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -80,7 +82,7 @@ sealed class BottomNavItem(
 fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
     todoData: List<TodoListData>,
     onClicked: (TodoListData) -> Unit,
-    onLongClicked: (Boolean) -> Unit
+    onLongClicked: (Boolean, TodoListData) -> Unit,
     ) {
 
     LazyColumn(
@@ -100,14 +102,13 @@ fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
             )
         }
     }
-
 }
 
 
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean) -> Unit) { //리사이클러뷰 아이템 그리는곳
+fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean, TodoListData) -> Unit) { //리사이클러뷰 아이템 그리는곳
     val context = LocalContext.current
     Card(
         modifier = Modifier
@@ -122,7 +123,7 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked: (T
                 .padding(12.dp)
                 .combinedClickable(
                     onClick = { onClicked(data) },
-                    onLongClick = { onLongClicked(true) },
+                    onLongClick = { onLongClicked(true, data) },
                 ),
             /*clickable {
                     Log.d("MainActivity", "ClickTest")
@@ -227,9 +228,11 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
     }
 
 
-    fun deleteTodo(i: Int?) {
-        if (i != null) {
-            todoListData = todoListData.toMutableList().also { it.removeAt(i) }
+    fun deleteTodo(deleteItem: TodoListData?) {
+        if (deleteItem != null) {
+            todoListData = todoListData.toMutableList().also { it.removeIf { filterIt ->
+                filterIt.title==deleteItem.title && filterIt.content==deleteItem.content && filterIt.date==deleteItem.date }
+            }
         }
     }
 
@@ -306,15 +309,27 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
     }
 
     //dialog 통제 변수
-    var isShow by remember {
+    /*var isShow by remember {
+        mutableStateOf(false)
+    }*/
+
+    var showDialog by remember {
         mutableStateOf(false)
     }
-    val moveRemoveTodoList : (Boolean) -> Unit = {
-        /*val intent = Intent(context, RemoveTodoListActivity::class.java).apply {
-            putExtra("type", "DELETE")
+    var deleteItem by remember {
+        mutableStateOf(TodoListData(null, null, null, null, null))
+    }
+
+    val moveRemoveTodoList : (Boolean, TodoListData) -> Unit = { isLongClicked, item ->
+        showDialog = isLongClicked
+        if (isLongClicked) {
+            deleteItem = item
+            deleteTodo(item)
         }
-        launcher.launch(intent)*/
-        isShow = it
+    }
+
+    if(showDialog) {
+        DialogScreen(setShowDialog = moveRemoveTodoList)
     }
 
     Scaffold( //material ui 기본 틀로 bottomBar, topbar, floatingbtn, drawer등을 포함하며 그려준다
@@ -330,17 +345,30 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
     }
 }
 
-@Composable
-fun DialogScreen(isShow : Boolean) {
-    Dialog(onDismissRequest = { /*TODO*/ }) {
+//다이얼로그는 기본적으로 별도의 surface에 그려짐
+//해당 surface의 배경색은 투명한 검정으로 되어있음
+//따라서 dialog content를 위한 별도의 surface를 설정해야함
 
+//DialogProperties
+//1.dismissOnBackPress = back 버튼 처리로 true 를 주면 back 버튼 누를경우 onDismissRequest 가 호출됨.
+//2.dismissOnClickOutside = Dialog 외부 클릭시 처리로 true를 주면  Dialog 외부 클릭시 onDismissRequest 가 호출됨.
+//3.securePolicy = SecureFlagPolicy.SecureOn 를 대입하면 화면 캡쳐기능이 동작안함.
+@Composable
+fun DialogScreen(setShowDialog : (Boolean, TodoListData) -> Unit) {
+    Dialog(onDismissRequest = { setShowDialog(false, TodoListData(null, null, null, null, null)) }) {
+        Surface(
+            modifier = Modifier.background(White)
+        ) {
+            DialogContent(setShowDialog)
+        }
     }
 }
 
 @Composable
-fun DialogContent() {
+fun DialogContent(setShowDialog : (Boolean, TodoListData) -> Unit) {
     Column(modifier = Modifier
         .wrapContentSize()
+        .border(1.dp, Black, RoundedCornerShape(8.dp))
         .padding(16.dp)
     ) {
       Text(
@@ -363,7 +391,7 @@ fun DialogContent() {
                 .wrapContentSize()
                 .padding(5.dp)
         ) {
-            Button(onClick = { /*TODO*/ },
+            Button(onClick = { setShowDialog(false, TodoListData(null, null, null, null, null)) },
             modifier = Modifier
                 .padding(top = 8.dp),
             colors = ButtonDefaults.buttonColors(
@@ -378,7 +406,7 @@ fun DialogContent() {
 
             Spacer(modifier = Modifier.size(8.dp))
 
-            Button(onClick = { /*TODO*/ },
+            Button(onClick = { setShowDialog(false, TodoListData(null, null, null, null, null)) },
                 modifier = Modifier
                     .padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -485,7 +513,7 @@ fun BottomNavigation(navController: NavHostController) { //바텀 뷰 그리기
 
 /*-----------------바텀 메뉴 화면 설정(FrameLayout 즉, 보여질 화면들 여기서 화면의 기능 및 디자인을 구현)--------------------*/
 @Composable
-fun BottomNavigationHomeView(todoData: List<TodoListData>, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean) -> Unit) {
+fun BottomNavigationHomeView(todoData: List<TodoListData>, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean, TodoListData) -> Unit) {
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
@@ -556,7 +584,7 @@ fun NavigationGraph(
     navController: NavHostController,
     todoData: List<TodoListData>,
     onClicked: (TodoListData) -> Unit,
-    onLongClicked: (Boolean) -> Unit
+    onLongClicked: (Boolean, TodoListData) -> Unit
 ) { //바텀 메뉴 클릭 시 이동 도와줌
     NavHost(
         navController = navController,
@@ -585,13 +613,14 @@ fun DefaultPreview() {
     }
 }
 
-@Preview(showBackground = true)
+/*@Preview(showBackground = false)
 @Composable
 fun DialogPreview() {
     MyComposeTodoListTheme() {
         DialogContent()
     }
-}
+}*/
+
 /*
 @Composable
 fun Greeting(name: String) {

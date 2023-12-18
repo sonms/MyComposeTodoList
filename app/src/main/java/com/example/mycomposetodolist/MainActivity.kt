@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -319,17 +318,36 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
     var deleteItem by remember {
         mutableStateOf(TodoListData(null, null, null, null, null))
     }
-
-    val moveRemoveTodoList : (Boolean, TodoListData) -> Unit = { isLongClicked, item ->
+    var dialogConfirm by remember {
+        mutableStateOf(false)
+    }
+    //삭제 여기서 하면 안되고 dialog 확인일때 삭제하도록해야함 Todo
+    /*val moveRemoveTodoList : (Boolean, TodoListData) -> Unit = { isLongClicked, item ->
         showDialog = isLongClicked
         if (isLongClicked) {
             deleteItem = item
             deleteTodo(item)
         }
+    }*/
+
+    //그럴려면 그냥 또 다른 변수 만들어서 false랑 true 받도록 해야할듯? == 얘가 long클릭 받기
+    val showDialogCheck : (Boolean, TodoListData) -> Unit = { isLongClicked, item ->
+        showDialog = isLongClicked
+        if (showDialog) {
+            deleteItem = item
+        }
+    }
+
+    //얘가 다이얼로그 확인버튼 누른거
+    val dialogCheck : (Boolean) -> Unit = { isConfirmed ->
+        dialogConfirm = isConfirmed
+        if (dialogConfirm) {
+            deleteTodo(deleteItem)
+        }
     }
 
     if(showDialog) {
-        DialogScreen(setShowDialog = moveRemoveTodoList)
+        DialogScreen(setShowDialog = showDialogCheck, dialogCheck)
     }
 
     Scaffold( //material ui 기본 틀로 bottomBar, topbar, floatingbtn, drawer등을 포함하며 그려준다
@@ -340,7 +358,7 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
     ) {
 
         Box(Modifier.padding(it)){
-            NavigationGraph(navController = navController, todoListData, moveEditEditTodoList, moveRemoveTodoList)
+            NavigationGraph(navController = navController, todoListData, moveEditEditTodoList, showDialogCheck)
         }
     }
 }
@@ -354,18 +372,18 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
 //2.dismissOnClickOutside = Dialog 외부 클릭시 처리로 true를 주면  Dialog 외부 클릭시 onDismissRequest 가 호출됨.
 //3.securePolicy = SecureFlagPolicy.SecureOn 를 대입하면 화면 캡쳐기능이 동작안함.
 @Composable
-fun DialogScreen(setShowDialog : (Boolean, TodoListData) -> Unit) {
+fun DialogScreen(setShowDialog : (Boolean, TodoListData) -> Unit, dialogCheck : (Boolean) -> Unit) {
     Dialog(onDismissRequest = { setShowDialog(false, TodoListData(null, null, null, null, null)) }) {
         Surface(
             modifier = Modifier.background(White)
         ) {
-            DialogContent(setShowDialog)
+            DialogContent(setShowDialog, dialogCheck)
         }
     }
 }
 
 @Composable
-fun DialogContent(setShowDialog : (Boolean, TodoListData) -> Unit) {
+fun DialogContent(setShowDialog : (Boolean, TodoListData) -> Unit, dialogCheck: (Boolean) -> Unit) {
     Column(modifier = Modifier
         .wrapContentSize()
         .border(1.dp, Black, RoundedCornerShape(8.dp))
@@ -406,7 +424,10 @@ fun DialogContent(setShowDialog : (Boolean, TodoListData) -> Unit) {
 
             Spacer(modifier = Modifier.size(8.dp))
 
-            Button(onClick = { setShowDialog(false, TodoListData(null, null, null, null, null)) },
+            Button(onClick = {
+                setShowDialog(false, TodoListData(null, null, null, null, null))
+                dialogCheck(true)
+                },
                 modifier = Modifier
                     .padding(top = 8.dp),
                 colors = ButtonDefaults.buttonColors(

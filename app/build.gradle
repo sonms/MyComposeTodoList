@@ -49,6 +49,9 @@ android {
 
 dependencies {
     def nav_version = "2.4.2"
+    // PreferenceDataStore
+    def datastore_version = "1.0.0"
+    implementation "androidx.datastore:datastore-preferences:$datastore_version"
     // Navigation
     implementation "androidx.navigation:navigation-compose:$nav_version"
     //Pager

@@ -2,15 +2,21 @@ package com.example.mycomposetodolist.component
 
 import android.app.Application
 import android.content.Context
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.MaterialTheme.colors
 import androidx.compose.material.Switch
+import androidx.compose.material.SwitchColors
+import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -40,7 +46,7 @@ import kotlinx.coroutines.flow.map
 * 언어 중립적이기 때문에 여러 프로그래밍 언어 간에 데이터를 교환하는 데 사용
 * */
 @Composable
-fun SettingScreen(viewModel: SettingsViewModel) {
+fun SettingScreen(viewModel: SettingsViewModel?) {
     //collectAsState는 Flow의 값을 수집하고 해당 값을 State로 변환하는 Compose의 확장 함수입니다.
     //initial 매개변수는 Flow가 값을 방출하기 전에 사용할 초기값을 지정합니다. 여기서는 false로 설정
 
@@ -49,21 +55,38 @@ fun SettingScreen(viewModel: SettingsViewModel) {
 
     //스코프와는 다름
     //Flow는 비동기적으로 여러 값(또는 하나의 값)을 생성하고, 이를 구독하는 코드에서 값을 받을 수 있는 메커니즘을 제공
-    var isAlarmEnabled = viewModel.alarmSettingFlow.collectAsState(initial = false).value
+    //var isAlarmEnabled = viewModel?.alarmSettingFlow?.collectAsState(initial = false)?.value
 
-    LazyColumn(modifier = Modifier
+    Column(modifier = Modifier
         .fillMaxSize()
         .padding(8.dp))
     {
-        item {
-            // 알람 설정
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(8.dp).align(Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.SpaceBetween, //row의 ui의 각 배치마다의 일정한 간격을 유지하도록 정렬
+            verticalAlignment = Alignment.CenterVertically
+
+        ) {
+            Text(
+                modifier = Modifier.padding(start = 7.dp),
+                text = "알람 설정",
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+            )
+            
             Switch(
-                checked = isAlarmEnabled,
+                checked = false,
                 onCheckedChange = {
-                    isAlarmEnabled = it
-                    viewModel.setAlarmSetting(it)
+                    /* isAlarmEnabled = it
+                     viewModel?.setAlarmSetting(it)*/
                 },
-                modifier = Modifier.padding(16.dp)
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.Black,
+                    uncheckedThumbColor = Color.White,
+                    checkedTrackColor = Color.Gray,
+                    uncheckedTrackColor = Color.Gray
+                ),
+                modifier = Modifier.align(Alignment.CenterVertically)
             )
         }
 
@@ -89,4 +112,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun SettingPreview() {
+    SettingScreen(viewModel = null)
+}
+
 

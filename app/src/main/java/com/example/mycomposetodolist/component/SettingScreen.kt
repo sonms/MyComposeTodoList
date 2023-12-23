@@ -2,19 +2,16 @@ package com.example.mycomposetodolist.component
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.*
 import androidx.compose.material.MaterialTheme.colors
-import androidx.compose.material.Switch
-import androidx.compose.material.SwitchColors
-import androidx.compose.material.SwitchDefaults
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,12 +54,29 @@ fun SettingScreen(viewModel: SettingsViewModel?) {
     //Flow는 비동기적으로 여러 값(또는 하나의 값)을 생성하고, 이를 구독하는 코드에서 값을 받을 수 있는 메커니즘을 제공
     //var isAlarmEnabled = viewModel?.alarmSettingFlow?.collectAsState(initial = false)?.value
 
+    var isShowDialog by remember {
+        mutableStateOf(false)
+    }
+
+    //얘가 다이얼로그 확인버튼 누른거
+    val dialogCheck : (Boolean) -> Unit = { isConfirmed ->
+        isShowDialog = isConfirmed
+    }
+
+
+    if (isShowDialog) {
+        ShowAlertDialog(dialogCheck)
+    }
+
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(8.dp))
     {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp).align(Alignment.CenterHorizontally),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .align(Alignment.CenterHorizontally),
             horizontalArrangement = Arrangement.SpaceBetween, //row의 ui의 각 배치마다의 일정한 간격을 유지하도록 정렬
             verticalAlignment = Alignment.CenterVertically
 
@@ -90,7 +104,107 @@ fun SettingScreen(viewModel: SettingsViewModel?) {
             )
         }
 
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .align(Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.SpaceBetween, //row의 ui의 각 배치마다의 일정한 간격을 유지하도록 정렬
+            verticalAlignment = Alignment.CenterVertically
+
+        ) {
+            Text(
+                modifier = Modifier
+                    .padding(start = 7.dp)
+                    .clickable {
+                        isShowDialog = true
+                    },
+                text = "닉네임 설정",
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+            )
+        }
+
     }
+}
+
+@Composable
+fun RowWithSwitch(
+    text: String,
+    onSwitchChanged: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween, //수평 배열 - 수평 위치 설정
+        verticalAlignment = Alignment.CenterVertically //수직 정렬 - 수직 정렬
+    ) {
+        Text(
+            modifier = Modifier.padding(start = 7.dp),
+            text = text,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+        )
+
+        Switch(
+            checked = false,
+            onCheckedChange = onSwitchChanged,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.Black,
+                uncheckedThumbColor = Color.White,
+                checkedTrackColor = Color.Gray,
+                uncheckedTrackColor = Color.Gray
+            ),
+            modifier = Modifier.align(Alignment.CenterVertically)
+        )
+    }
+}
+
+@Composable
+fun RowWithClickableText(
+    text: String,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            modifier = Modifier
+                .padding(start = 7.dp)
+                .clickable(onClick = {
+                    onClick()
+                }),
+            text = text,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+        )
+    }
+}
+
+@Composable
+fun ShowAlertDialog(
+    isShow : (Boolean) -> Unit
+) {
+    androidx.compose.material.AlertDialog(
+        onDismissRequest = { /* TODO: AlertDialog 닫을 때 수행할 작업 */ },
+        confirmButton = {
+            Button(onClick = { isShow(false) }) {
+                Text("확인")
+            }
+        },
+        title = {
+            Text("알림")
+        },
+        text = {
+            Text("AlertDialog 내용")
+        }
+    )
 }
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {

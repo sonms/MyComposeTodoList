@@ -52,7 +52,7 @@ fun SettingScreen(viewModel: SettingsViewModel?) {
 
     //스코프와는 다름
     //Flow는 비동기적으로 여러 값(또는 하나의 값)을 생성하고, 이를 구독하는 코드에서 값을 받을 수 있는 메커니즘을 제공
-    //var isAlarmEnabled = viewModel?.alarmSettingFlow?.collectAsState(initial = false)?.value
+    var isAlarmEnabled = viewModel?.alarmSettingFlow?.collectAsState(initial = false)?.value
 
     var isShowDialog by remember {
         mutableStateOf(false)
@@ -87,21 +87,22 @@ fun SettingScreen(viewModel: SettingsViewModel?) {
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
             )
-            
-            Switch(
-                checked = false,
-                onCheckedChange = {
-                    /* isAlarmEnabled = it
-                     viewModel?.setAlarmSetting(it)*/
-                },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.Black,
-                    uncheckedThumbColor = Color.White,
-                    checkedTrackColor = Color.Gray,
-                    uncheckedTrackColor = Color.Gray
-                ),
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
+
+            if (isAlarmEnabled != null) {
+                Switch(
+                    checked = isAlarmEnabled,
+                    onCheckedChange = {
+                        viewModel?.setAlarmSetting(it)
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        uncheckedThumbColor = Color.White,
+                        checkedTrackColor = Color.Gray,
+                        uncheckedTrackColor = Color.Gray
+                    ),
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+            }
         }
 
         Row(
@@ -192,7 +193,7 @@ fun ShowAlertDialog(
     isShow : (Boolean) -> Unit
 ) {
     androidx.compose.material.AlertDialog(
-        onDismissRequest = { /* TODO: AlertDialog 닫을 때 수행할 작업 */ },
+        onDismissRequest = { isShow(false) },
         confirmButton = {
             Button(onClick = { isShow(false) }) {
                 Text("확인")

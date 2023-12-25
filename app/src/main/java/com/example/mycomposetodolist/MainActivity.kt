@@ -1,6 +1,8 @@
 package com.example.mycomposetodolist
 
 import android.app.Activity
+import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -44,7 +46,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.window.Dialog
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mycomposetodolist.component.SettingScreen
+import com.example.mycomposetodolist.component.SettingsViewModel
 import com.example.mycomposetodolist.component.StatisticsScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -575,20 +592,17 @@ fun BottomNavigationStatisticsView(todoData : List<TodoListData>) { //통계분�
         StatisticsScreen(data = todoData)
     }
 }
-
 @Composable
 fun BottomNavigationSettingView() {
+    val viewModel: SettingsViewModel = viewModel()
+
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
         .background(Color.White)
     ) {
-        Text(text = stringResource(id = R.string.text_setting),
-            style = MaterialTheme.typography.h1,
-            textAlign = TextAlign.Center, //textalign -> 글자정렬
-            color = Color.Black,
-            modifier = Modifier.align(Alignment.Center)
-        )
+
+        SettingScreen(viewModel = viewModel)
     }
 }
 /*----------------------------------------------------------------*/

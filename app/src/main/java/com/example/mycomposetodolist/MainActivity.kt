@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -57,6 +58,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mycomposetodolist.component.SettingScreen
 import com.example.mycomposetodolist.component.SettingsViewModel
 import com.example.mycomposetodolist.component.StatisticsScreen
+import com.example.mycomposetodolist.dataclass.TodoViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -76,7 +78,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    MainScreenView()
+                    val todoViewModel: TodoViewModel by viewModels()
+                    MainScreenView(todoViewModel = todoViewModel)
                 }
             }
         }
@@ -188,7 +191,7 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked: (T
 //모든 뷰를 가진 최종 UI코드
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최종 UI 코드
+fun MainScreenView(todoViewModel: TodoViewModel?) { //바텀네비게이션 바와 그 기능을 가진 최종 UI 코드
     //기본적으로 Compose에서 어떠한 상태 값이 바뀌게 되면 재구성(Recomposition)이 일어나게 된다.
     //여기서 재구성이란, 말 그대로 재 생성한다는 뜻이다.
     //만약 재구성하게 되면 기본값이 a인 텍스트뷰가 버튼 클릭 시 b로 바뀔 때 재구성되는데 이때 b로바뀌는게 아니라 a를 그대로 가지고 있게됨 재구성되었으니까
@@ -220,7 +223,18 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
     val todoAllData = ArrayList<TodoListData>()
 
     var todoListData by rememberSaveable { mutableStateOf(listOf<TodoListData>()) }
+
+    //Jetpack Compose에서 viewModel()를 사용하여 뷰모델을 가져오면 해당 뷰모델은 화면 구성요소가 활성 상태일 때 유지됩니다.
+    // 이렇게 함으로써 뷰모델은 Compose의 상태 관리와 분리되며, Compose는 뷰모델을 자동으로 관리합니다.
+    // 따라서 remember 함수를 사용하여 별도의 상태를 관리할 필요 없이 viewModel()를 통해 뷰모델을 편리하게 사용
+    val todoViewModelData = todoViewModel?.getAllTodoItems()?.collectAsState(false)
+
+    val coroutineScope = CoroutineScope(Dispatchers.Main)
+
     fun addTodo(todo: TodoListData) {
+        coroutineScope.launch(Dispatchers.IO) {
+            todoViewModel?.insertTodoItem(todo)
+        }
         todoListData = todoListData + listOf(todo)
     }
 
@@ -374,7 +388,7 @@ fun MainScreenView() { //바텀네비게이션 바와 그 기능을 가진 최�
         bottomBar = { BottomNavigation(navController = navController) }
     ) {
 
-        Box(Modifier.padding(it)){
+        Box(Modifier.padding(it)){//State<List<TodoListData>>
             NavigationGraph(navController = navController, todoListData, moveEditEditTodoList, showDialogCheck)
         }
     }
@@ -644,7 +658,7 @@ fun NavigationGraph(
 @Composable
 fun DefaultPreview() {
     MyComposeTodoListTheme {
-        MainScreenView()
+        MainScreenView(null)
     }
 }
 

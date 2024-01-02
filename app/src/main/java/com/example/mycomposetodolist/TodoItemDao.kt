@@ -1,9 +1,6 @@
 package com.example.mycomposetodolist
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.Query
+import androidx.room.*
 import com.example.mycomposetodolist.dataclass.TodoListData
 import kotlinx.coroutines.flow.Flow
 
@@ -14,6 +11,9 @@ interface TodoItemDao { //Room 데이터베이스에 액세스하는 데 사용�
 
     @Insert
     suspend fun insertTodoItem(todoItem: TodoListData)
+
+    @Update
+    suspend fun update(todoItem: TodoListData)
 
     @Delete
     suspend fun deleteTodoItem(todoItem: TodoListData)

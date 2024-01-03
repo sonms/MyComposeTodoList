@@ -255,6 +255,10 @@ fun MainScreenView(todoViewModel: TodoViewModel?) { //바텀네비게이션 바�
         val index : Int = i ?: 0
 
         todoListData = todoListData.toMutableList().also { it[index] = todo }
+
+        coroutineScope.launch(Dispatchers.IO) {
+            todoViewModel?.updateTodoItem(todo)
+        }
     }
 
 
@@ -262,6 +266,9 @@ fun MainScreenView(todoViewModel: TodoViewModel?) { //바텀네비게이션 바�
         if (deleteItem != null) {
             todoListData = todoListData.toMutableList().also { it.removeIf { filterIt ->
                 filterIt.title==deleteItem.title && filterIt.content==deleteItem.content && filterIt.date==deleteItem.date }
+            }
+            coroutineScope.launch(Dispatchers.IO) {
+                todoViewModel?.deleteTodoItem(deleteItem)
             }
         }
     }

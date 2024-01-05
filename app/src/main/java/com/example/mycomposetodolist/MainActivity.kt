@@ -53,6 +53,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mycomposetodolist.component.SettingScreen
@@ -226,9 +227,17 @@ fun MainScreenView(todoViewModel: TodoViewModel?) { //바텀네비게이션 바�
 
     //Jetpack Compose에서 viewModel()를 사용하여 뷰모델을 가져오면 해당 뷰모델은 화면 구성요소가 활성 상태일 때 유지됩니다.
     // 이렇게 함으로써 뷰모델은 Compose의 상태 관리와 분리되며, Compose는 뷰모델을 자동으로 관리합니다.
-    // 따라서 remember 함수를 사용하여 별도의 상태를 관리할 필요 없이 viewModel()를 통해 뷰모델을 편리하게 사용
-    val todoViewModelData = todoViewModel?.getAllTodoItems()?.collectAsState(false)
 
+    // 따라서 remember 함수를 사용하여 별도의 상태를 관리할 필요 없이 viewModel()를 통해 뷰모델을 편리하게 사용
+    //val uiState: AuthorScreenUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    //val todoViewModelData = todoViewModel?.getAllTodoItems()?.collectAsState(false)
+    //val todoViewModelData by todoViewModel?.getAllTodoItems()?.collectAsStateWithLifecycle<List<TodoListData>>()
+    /*val books by viewModel.books.collectAsState(
+        initial = emptyList()
+    )*/
+    val todoViewModelData by todoViewModel?.allTodos!!.collectAsState(initial =
+        emptyList()
+    )
     val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     fun addTodo(todo: TodoListData) {
@@ -396,7 +405,7 @@ fun MainScreenView(todoViewModel: TodoViewModel?) { //바텀네비게이션 바�
     ) {
 
         Box(Modifier.padding(it)){//State<List<TodoListData>>
-            NavigationGraph(navController = navController, todoListData, moveEditEditTodoList, showDialogCheck)
+            NavigationGraph(navController = navController, todoViewModelData, moveEditEditTodoList, showDialogCheck)
         }
     }
 }

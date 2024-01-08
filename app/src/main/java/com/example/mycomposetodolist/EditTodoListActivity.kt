@@ -46,6 +46,7 @@ class EditTodoListActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MyComposeTodoListTheme {
+                //여기에 이제 primary ket 인 id 를 저장하고 관리할 sharedpreference가 필요
                 val type = intent.getStringExtra("type")
                 if (type != null) {
                     Log.d("EDITACTIVITY", type)

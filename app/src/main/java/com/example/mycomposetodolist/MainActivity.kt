@@ -103,6 +103,7 @@ fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
     todoData: List<TodoListData>,
     onClicked: (TodoListData) -> Unit,
     onLongClicked: (Boolean, TodoListData) -> Unit,
+    checked : (TodoListData) -> Unit,
     ) {
 
     LazyColumn(
@@ -118,7 +119,8 @@ fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
                 data = item,
                 modifier = Modifier.fillMaxSize(),
                 onClicked,
-                onLongClicked
+                onLongClicked,
+                checked
             )
         }
     }
@@ -128,8 +130,14 @@ fun InitRecyclerViewUI( //fragment안에 recyclerview UI를 그리는 곳
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean, TodoListData) -> Unit) { //리사이클러뷰 아이템 그리는곳
+fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean, TodoListData) -> Unit, checked: (TodoListData) -> Unit) { //리사이클러뷰 아이템 그리는곳
     val context = LocalContext.current
+
+    val setChecked : (Boolean) -> Unit = {
+        data.isComplete = it
+        checked(data)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -151,27 +159,35 @@ fun RecyclerViewItemLayout(data: TodoListData, modifier: Modifier, onClicked: (T
                 }*/
             verticalArrangement = Arrangement.Center,
         ) {
-            Text( //제목
-                text = data.title.toString(),
-                fontFamily = FontFamily.Monospace,
-                style = MaterialTheme.typography.h2,
-                textAlign = TextAlign.Center,
-                color = Color.Black,
-                fontSize = 12.sp,
-                overflow = TextOverflow.Ellipsis, //텍스트의 길이가 화면을 벗어날경우 처리설정, ellipsis는... / Visible 전부 표시, clip은 자르기 가로로잘림
-                maxLines = 1
-            )
+            Row(modifier = Modifier.padding(12.dp)) {
+                Column() {
+                    Text( //제목
+                        text = data.title.toString(),
+                        fontFamily = FontFamily.Monospace,
+                        style = MaterialTheme.typography.h2,
+                        textAlign = TextAlign.Center,
+                        color = Color.Black,
+                        fontSize = 12.sp,
+                        overflow = TextOverflow.Ellipsis, //텍스트의 길이가 화면을 벗어날경우 처리설정, ellipsis는... / Visible 전부 표시, clip은 자르기 가로로잘림
+                        maxLines = 1
+                    )
 
-            Text( //내용
-                text = data.content.toString(),
-                fontFamily = FontFamily.Monospace,
-                style = MaterialTheme.typography.body1,
-                textAlign = TextAlign.Center,
-                color = Color.Black,
-                fontSize = 18.sp,
-                overflow = TextOverflow.Ellipsis, //텍스트의 길이가 화면을 벗어날경우 처리설정, ellipsis는... / Visible 전부 표시, clip은 자르기 가로로잘림
-                maxLines = 1
-            )
+                    Text( //내용
+                        text = data.content.toString(),
+                        fontFamily = FontFamily.Monospace,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Center,
+                        color = Color.Black,
+                        fontSize = 18.sp,
+                        overflow = TextOverflow.Ellipsis, //텍스트의 길이가 화면을 벗어날경우 처리설정, ellipsis는... / Visible 전부 표시, clip은 자르기 가로로잘림
+                        maxLines = 1
+                    )
+                }
+                Checkbox(
+                    checked = data.isComplete!!,
+                    onCheckedChange = setChecked
+                )
+            }
 
             Text( //날짜
                 modifier = Modifier.fillMaxWidth(), //textalign을 적용하기 위해서는 크기의 설정이 필요
@@ -393,7 +409,14 @@ fun MainScreenView(todoViewModel: TodoViewModel?) { //바텀네비게이션 바�
         }
     }
 
-    if(showDialog) {
+    //checkbox용
+    val setChecked : (TodoListData) -> Unit = {
+        coroutineScope.launch {
+            todoViewModel?.updateTodoItem(it)
+        }
+    }
+
+   if(showDialog) {
         DialogScreen(setShowDialog = showDialogCheck, dialogCheck)
     }
 
@@ -405,7 +428,7 @@ fun MainScreenView(todoViewModel: TodoViewModel?) { //바텀네비게이션 바�
     ) {
 
         Box(Modifier.padding(it)){//State<List<TodoListData>>
-            NavigationGraph(navController = navController, todoViewModelData, moveEditEditTodoList, showDialogCheck)
+            NavigationGraph(navController = navController, todoViewModelData, moveEditEditTodoList, showDialogCheck, setChecked)
         }
     }
 }
@@ -581,13 +604,13 @@ fun BottomNavigation(navController: NavHostController) { //바텀 뷰 그리기
 
 /*-----------------바텀 메뉴 화면 설정(FrameLayout 즉, 보여질 화면들 여기서 화면의 기능 및 디자인을 구현)--------------------*/
 @Composable
-fun BottomNavigationHomeView(todoData: List<TodoListData>, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean, TodoListData) -> Unit) {
+fun BottomNavigationHomeView(todoData: List<TodoListData>, onClicked: (TodoListData) -> Unit, onLongClicked: (Boolean, TodoListData) -> Unit, checked : (TodoListData) -> Unit,) {
     Box(modifier = Modifier //Box == FrameLayout?
         .fillMaxSize()
         .border(1.dp, Color.Cyan)
         .background(Color.White) //, RoundedCornerShape(24.dp)
     ) {
-        InitRecyclerViewUI(todoData, onClicked, onLongClicked)
+        InitRecyclerViewUI(todoData, onClicked, onLongClicked, checked)
     }
 }
 
@@ -649,14 +672,15 @@ fun NavigationGraph(
     navController: NavHostController,
     todoData: List<TodoListData>,
     onClicked: (TodoListData) -> Unit,
-    onLongClicked: (Boolean, TodoListData) -> Unit
+    onLongClicked: (Boolean, TodoListData) -> Unit,
+    checked : (TodoListData) -> Unit,
 ) { //바텀 메뉴 클릭 시 이동 도와줌
     NavHost(
         navController = navController,
         startDestination = BottomNavItem.Home.screenRoute
     ) {
         composable(BottomNavItem.Home.screenRoute) { //composalbe안에는 보여질 메뉴의 이름
-            BottomNavigationHomeView(todoData, onClicked, onLongClicked)
+            BottomNavigationHomeView(todoData, onClicked, onLongClicked, checked)
         }
         composable(BottomNavItem.Calendar.screenRoute) {
             BottomNavigationCalendarView()
@@ -677,6 +701,8 @@ fun DefaultPreview() {
         MainScreenView(null)
     }
 }
+
+
 
 /*@Preview(showBackground = false)
 @Composable

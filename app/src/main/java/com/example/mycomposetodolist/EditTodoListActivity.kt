@@ -1,5 +1,6 @@
 package com.example.mycomposetodolist
 
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -53,6 +54,7 @@ class EditTodoListActivity : ComponentActivity() {
                 }
                 val selectedDate = intent.getStringExtra("selectedDate")
                 val context = LocalContext.current
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.White
@@ -94,7 +96,9 @@ class EditTodoListActivity : ComponentActivity() {
                         }
                     } else {
                         null
-                    })
+                    },
+
+                    )
                 }
             }
         }
@@ -118,9 +122,12 @@ fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?, data : TodoListD
         todayDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     }
 
+    val sharedPref = context.getSharedPreferences("PrimaryKey", Context.MODE_PRIVATE)
+
     var id by remember {
-        mutableStateOf(0)
+        mutableStateOf(sharedPref.getInt("Id", 0))
     }
+
     val addTodo = TodoListData(id, titleText.text, contentText.text, formattedDate, false)
 
     //현재 소프트웨어 키보드를 제어한 다음 hide메서드를 사용할 수 있습니다.
@@ -238,8 +245,12 @@ fun EditView(type: String?, onClick: ((TodoListData) -> Unit)?, data : TodoListD
         Button(onClick = {
             if (onClick != null) {
                 onClick(addTodo)
+                id++
+                with(sharedPref.edit()) {
+                    putInt("Id", id)
+                    apply() // 비동기적으로 데이터를 저장
+                }
             }
-            id++
         },
             modifier = Modifier
                 .wrapContentSize()
